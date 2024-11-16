@@ -1,15 +1,9 @@
 #include "UCS.h"
-
 #include <unordered_set>
-
 #include <string>
-
 #include <queue>
-
 #include <utility>
-
 #include <iostream>
-
 using namespace std;
 
 // Initiallizing the constructor UCS.h class..Practically everything is set to zero.
@@ -18,7 +12,7 @@ UCS::UCS() {}
 // In this function we practically decide to which node we want to move next.
 //choosing the node with the less cost.
 int UCS::calculateCost(const char puzzle[7]) {
-  int minimum_cost_expansion = INT_MAX; //https://www.geeksforgeeks.org/int_max-int_min-cc-applications
+  int minimum_cost_expansion = INT_MAX; //https://www.geeksforgeeks.org/int_max-int_min-cc-applications // minimum_cost_expansion will be assigned to the lowest cost.
   for (string goal: solution_goals) { // Iterate through all goal states
     int total_cost = 0; // Initialize total cost for the current goal state
     for (int i = 0; i < 7; i++) { // Compare the current puzzle state with the goal state
@@ -32,10 +26,9 @@ int UCS::calculateCost(const char puzzle[7]) {
 }
 
 // In this function we create a new node...practically a child node is created here.
-Node * UCS::newNode(Node * parent,
-  const char puzzle[7], int empty_pos, int new_empty_pos, int depth_level, int last_move_cost) {
-  Node * node = new Node(parent, puzzle, new_empty_pos, INT_MAX, depth_level + last_move_cost, last_move_cost); // Create a new Node
-  swap(node -> puzzle[empty_pos], node -> puzzle[new_empty_pos]); // Swap the empty space with the new position
+Node * UCS::newNode(Node * parent,const char puzzle[7], int PositionOfEmptyTile, int new_PositionOfEmptyTile, int depth_level, int last_move_cost) {
+  Node * node = new Node(parent, puzzle, new_PositionOfEmptyTile, INT_MAX, depth_level + last_move_cost, last_move_cost); // Create a new Node
+  swap(node -> puzzle[PositionOfEmptyTile], node -> puzzle[new_PositionOfEmptyTile]); // Swap the empty space with the new position
   return node; // Returns the new node that is created.
 }
 
@@ -57,7 +50,6 @@ void UCS::printPath(Node * root) {
   printPath(root -> parent); // Recursively print the path to the parent node
   printState(root -> puzzle); // Print the current state of the puzzle.
   // Move cost and total cost here is zero.
-
   if (root -> parent != nullptr) { // If the current node has a parent
     cout << "The MOVE COST from the previous node to this one is : " << root -> last_move_cost << endl; // Print the cost of the last move to the current one
     cout << "The TOTAL COST from the initiall node to this one is: " << root -> depth_level << endl; // Print the total cost of all the destination.
@@ -67,54 +59,58 @@ void UCS::printPath(Node * root) {
 }
 
 // This function is about to check if we have reached one of our goals in the current state.
-bool UCS::Goalcheck(const char puzzle[7]) { //find is about to search the array of solution_goals from the beginning till the end
-    return find(solution_goals.begin(), solution_goals.end(), string(puzzle, 7)) != solution_goals.end(); //If the string is found, return true...else return false...
+bool UCS::GoalCheck(const char puzzle[7]) {
+
+  string curr(puzzle, puzzle + 7);
+
+  return find(solution_goals.begin(), solution_goals.end(), curr) != solution_goals.end();
 }
 
-  struct comp
-{
-    bool operator()(Node * lhs, Node * rhs) const
-    {
-        return (lhs -> total_cost + lhs -> depth_level) > (rhs -> total_cost + rhs -> depth_level);
-    }
-};
+//https://www.geeksforgeeks.org/8-puzzle-problem-using-branch-and-bound/ 
+void UCS::solve(char InitialPuzzle[7], int PositionOfEmptyTile) {
 
-void UCS::solve(char initial[7], int empty_pos) {
+  auto compare = [](Node * lhs, Node * rhs) {
+    return (lhs -> total_cost + lhs -> depth_level) > (rhs -> total_cost + rhs -> depth_level);
+  };
 
-  priority_queue<Node*, std::vector<Node*>, comp> pq; //https://github.com/abdulwahab2122/8-puzzle-problem-using-AI-techniques-in-cpp/blob/main/Uniform_Cost_Search.cpp 
+  priority_queue < Node * , vector < Node * > , decltype(compare) > pq(compare); // https://stackoverflow.com/questions/16111337/declaring-a-priority-queue-in-c-with-a-custom-comparator 
 
   unordered_set < string > visited;
 
-  Node * root = new Node(nullptr, initial, empty_pos, calculateCost(initial), 0, 0);
+  Node * root = new Node(nullptr, InitialPuzzle, PositionOfEmptyTile, calculateCost(InitialPuzzle), 0, 0);
 
   pq.push(root);
 
-  visited.insert(string(initial));
+  visited.insert(string(InitialPuzzle));
 
   vector < pair < int, int >> moves = {
-    {-1, 1},{-2,2},{-3,3},{1,1},{2,2},{3,3}
+    {-1, 1},{-2,2},{-3,3},{1,1},{2,2},{3,3}  //https://stackoverflow.com/questions/13406790/filling-a-vector-of-pairs 
   };
+
+  int NodesCount = 0; 
 
   while (!pq.empty()) {
 
     Node * min = pq.top();
     pq.pop();
 
-    if (Goalcheck(min -> puzzle)) {
+    NodesCount++;  
 
+    if (GoalCheck(min -> puzzle)) {
       printPath(min);
+      cout << "Total nodes expanded: " << NodesCount << endl;
       return;
     }
 
-    int empty_pos = min -> empty_pos;
+    int PositionOfEmptyTile = min -> PositionOfEmptyTile;
 
     for (const auto & [move, total_cost]: moves) {
 
-      int new_empty_pos = empty_pos + move;
+      int new_PositionOfEmptyTile = PositionOfEmptyTile + move;
 
-      if (new_empty_pos >= 0 && new_empty_pos < 7) {
+      if (new_PositionOfEmptyTile >= 0 && new_PositionOfEmptyTile < 7) {
 
-        Node * child = newNode(min, min -> puzzle, empty_pos, new_empty_pos, min -> depth_level, total_cost);
+        Node * child = newNode(min, min -> puzzle, PositionOfEmptyTile, new_PositionOfEmptyTile, min -> depth_level, total_cost);
 
         child -> total_cost = calculateCost(child -> puzzle);
 
@@ -123,6 +119,5 @@ void UCS::solve(char initial[7], int empty_pos) {
     }
   }
 
-  cout << "No solution exists for the given puzzle." << endl;
+  cout << "No solution can be found." << endl;
 }
-
