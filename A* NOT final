@@ -1,0 +1,212 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <unordered_set>
+#include <string>
+#include <sstream>
+#include <algorithm>
+#include <memory>
+
+using namespace std;
+
+// Node structure for A*
+class Node {
+public:
+    string state;                    // ΚΑΤΑΣΤΑΣΗ
+    shared_ptr<Node> parent;         // ΠΑΤΡΙΚΟΣ ΚΟΜΒΟΣ
+    string action;                   // ΕΝΕΡΓΕΙΑ
+    int pathCost;                    // ΚΟΣΤΟΣ ΜΟΝΟΠΑΤΙΟΥ (g)
+    int heuristic;                   // ΕΥΡΙΣΤΙΚΗ ΤΙΜΗ (h)
+    int totalCost;                   // ΣΥΝΟΛΙΚΟ ΚΟΣΤΟΣ (f = g + h)
+    int depth;                       // ΒΑΘΟΣ
+
+    Node(string s, shared_ptr<Node> p, string a, int g, int h, int d) {
+        state = s;
+        parent = p;
+        action = a;
+        pathCost = g;
+        heuristic = h;
+        totalCost = g + h;
+        depth = d;
+    }
+
+    // Helper method to get the solution path
+    vector<string> getSolutionPath() const {
+        vector<string> path;                //φτιάχνει άδειο vector που αποθηκευει strings και το ονομάζει path
+        const Node* current = this;         //θετει το τρεχον node στην μεταβλητη current
+        while (current && !current->action.empty()) {   //τρέχει οσο το current υπαρχει και να μην ειναι empty το action του Node
+            path.push_back(current->action);    //ΠΑΙΡΝΕΙ ΤΟ ACTION ΤΟΥ CURRENT NODE ΚΑΙ ΤΟ ΒΑΖΕΙ ΣΤΟ ΤΕΛΟΣ ΤΟΥ PATH 
+            current = current->parent.get();    //ΘΕΤΕΙ ΤΟ CURRENT NODE ΝΑ ΕΙΝΑΙ TO PARENT NODE TOY ΠΑΛΙΟΥ CURRENT. αντικαταστει το current
+        }
+        reverse(path.begin(), path.end());  //ΤΟ ΑΝΤΙΣΤΡΕΦΕΙ ΕΤΣΙ ΩΣΤΕ ΝΑ ΕΧΟΥΜΕ ΤΟ ΠΡΑΓΜΑΤΙΚΟ PATH ΚΑΙ ΟΧΙ ΜΕ ΤΙΣ ΑΝΑΠΟΔΕΣ ΣΕΙΡΕΣ
+        return path;    //ΕΠΙΣΤΡΕΦΕΙ ΤΟ PATH 
+    }
+};
+
+struct NodeCompare {
+    bool operator()(const shared_ptr<Node>& a, const shared_ptr<Node>& b) {         //
+        return a->totalCost > b->totalCost;  // Compare based on f = g + h          //ΔΕΣ TABLET
+    }
+};
+
+
+// Frontier (μέτωπο αναζήτησης) implementation for A*
+class Frontier {
+private:
+    priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, NodeCompare> queue;      //4 FUNCTIONS
+
+public:
+    // MakeQueue
+    void makeQueue(shared_ptr<Node> initialNode) {                                            //
+        queue = priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, NodeCompare>();    //ΔΕΣ TABLET
+        queue.push(initialNode);       //ΒΑΖΕΙ ΤΟ INITIALNODE ΣΤΟ QUEUE                       //
+    }
+
+    // Empty?
+    bool empty() const {
+        return queue.empty();       //ΕΠΙΣΤΡΕΦΕΙ TRUE/FALSE ΑΜΑ ΤΟ QUEUE ΕΙΝΑΙ ΑΔΕΙΟ 
+    }
+
+    // RemoveFront
+    shared_ptr<Node> removeFront() {    //ΔΙΑΓΡΑΦΕΙ ΤΟ ΠΡΩΤΟ NODE ΣΤΟ PRIORITY QUEUE
+        if (empty()) return nullptr;
+        auto front = queue.top();       //ΕΠΙΣΤΡΕΦΕΙ ΤΟ ΠΡΩΤΟ ΣΤΟΙΧΕΙΟ
+        queue.pop();                    //ΑΦΑΙΡΕΙ ΤΟ ΠΡΩΤΟ ΣΤΟΙΧΕΙΟ 
+        return front;
+    }
+
+    // Queuing-Fn
+    void queuingFn(const vector<shared_ptr<Node>>& nodes) {     //ΒΑΖΕΙ ΠΟΛΛΑ ΝODES ΚΑΙ ΤΑ ΚΑΝΕΙ PUSH ΤΑΥΤΟΧΡΟΝΑ (τα βαζει μεσα στο priority_queue)
+        for (const auto& node : nodes) {    
+            queue.push(node);
+        }
+    }
+};
+
+class PuzzleSolver {
+private:
+    int nodesExpanded = 0;
+    unordered_set<string> visited;
+
+    bool canMovePiece(const string& board, int piecePos, int emptyPos) const {
+        int distance = abs(piecePos - emptyPos);
+        return distance > 0 && distance <= 3 && 
+               (board[piecePos] == 'B' || board[piecePos] == 'W') && 
+               board[emptyPos] == 'E';
+    }
+
+    // Calculate heuristic as the number of misplaced W and B pairs
+    int calculateHeuristic(const string& board) const {
+        int heuristicCost = 0;
+        bool foundB = false;
+        for (char piece : board) {
+            if (piece == 'B') foundB = true;
+            if (foundB && piece == 'W') heuristicCost++;
+        }
+        return heuristicCost;
+    }
+
+     vector<shared_ptr<Node>> expand(const shared_ptr<Node>& node) {
+        vector<shared_ptr<Node>> successors;
+        int emptyPos = node->state.find('E');
+        
+        for (int offset = -3; offset <= 3; offset++) {
+            if (offset == 0) continue;
+            
+            int piecePos = emptyPos + offset;
+            if (piecePos >= 0 && piecePos < node->state.length() && 
+                canMovePiece(node->state, piecePos, emptyPos)) {
+                
+                string newState = node->state;
+                swap(newState[piecePos], newState[emptyPos]);
+                
+                int moveCost = abs(offset);
+                ostringstream moveDesc;
+                moveDesc << "Move " << node->state[piecePos] 
+                         << " from " << piecePos 
+                         << " to " << emptyPos 
+                         << " (cost: " << moveCost << ")";
+                
+                // Calculate g, h, and f for the new node
+                int g = node->pathCost + moveCost;
+                int h = calculateHeuristic(newState);
+                successors.push_back(make_shared<Node>(
+                    newState,
+                    node,
+                    moveDesc.str(),
+                    g,        // pathCost (g)
+                    h,        // heuristic (h)
+                    node->depth + 1
+                ));
+            }
+        }
+        
+        return successors;
+    }
+
+    bool isGoalState(const string& state) const {
+        bool foundB = false;
+        for (char piece : state) {
+            if (piece == 'B') foundB = true;
+            if (foundB && piece == 'W') return false;
+        }
+        return true;
+    }
+
+public:
+    shared_ptr<Node> solve(const string& initialState) {
+        Frontier frontier;
+        visited.clear();
+        nodesExpanded = 0;
+        
+        // Create initial node with heuristic
+        int initialHeuristic = calculateHeuristic(initialState);
+        auto initialNode = make_shared<Node>(initialState, nullptr, "", 0, initialHeuristic, 0);
+        frontier.makeQueue(initialNode);
+        
+        while (!frontier.empty()) {
+            auto node = frontier.removeFront();
+            nodesExpanded++;
+            
+            if (!visited.insert(node->state).second)
+                continue;
+                
+            if (isGoalState(node->state))
+                return node;
+            
+            auto successors = expand(node);
+            frontier.queuingFn(successors);
+        }
+        
+        return nullptr;
+    }
+
+    int getNodesExpanded() const {
+        return nodesExpanded;
+    }
+};
+
+int main() {
+    string initialBoard = "BBBWWWE";
+    PuzzleSolver solver;
+    
+    cout << "Initial state: " << initialBoard << "\n\n";
+    
+    auto solution = solver.solve(initialBoard);
+    
+    if (solution) {
+        cout << "Solution found!\n";
+        cout << "Final state: " << solution->state << "\n";
+        cout << "Total cost: " << solution->pathCost << "\n";
+        cout << "Solution depth: " << solution->depth << "\n";
+        cout << "\nMoves:\n";
+        for (const string& move : solution->getSolutionPath()) {
+            cout << move << "\n";
+        }
+        cout << "\nTotal nodes expanded: " << solver.getNodesExpanded() << "\n";
+    } else {
+        cout << "No solution found!\n";
+    }
+    
+    return 0;
+}
