@@ -1,0 +1,189 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <queue>
+#include <string>
+#include <unordered_set>
+#include <sstream>
+#include <memory>
+
+using namespace std;
+
+class AStarNode{
+public:
+    string state;
+    shared_ptr<AStarNode> parent;
+    string action;
+    int f, g, h;
+    int depth;
+
+    AStarNode(string _s, shared_ptr<AStarNode> _p, string _a, int _g, int _h, int _d) {
+        state = _s;
+        parent = _p;
+        action = _a;
+        g = _g;
+        h = _h;
+        f = _g + _h;
+        depth = _d;
+    }
+
+    vector<string> getSolutionPath() const {
+        vector<string> path;
+        const AStarNode* current = this;
+        while (current && !current->action.empty()) {
+            path.push_back(current->action);
+            current = current->parent.get();
+        }
+        reverse(path.begin(), path.end());
+        return path;
+    }
+};
+
+struct NodeCompare {
+    bool operator()(const shared_ptr<AStarNode>& a, const shared_ptr<AStarNode>& b) {
+        return a->f > b->f;
+    }
+};
+
+class Frontier {
+private:
+    priority_queue<shared_ptr<AStarNode>, vector<shared_ptr<AStarNode>>, NodeCompare> pr_queue;
+public:
+    void MakeQueue(shared_ptr<AStarNode> InitialNode) {
+        pr_queue = priority_queue<shared_ptr<AStarNode>, vector<shared_ptr<AStarNode>>, NodeCompare>();
+        pr_queue.push(InitialNode);
+    }
+
+    bool empty() const {
+        return pr_queue.empty();
+    }
+
+    shared_ptr<AStarNode> RemoveFront() {    
+        if (empty()) return nullptr;
+        auto front = pr_queue.top();       
+        pr_queue.pop();                     
+        return front;
+    }
+
+    void QueuingMany(const vector<shared_ptr<AStarNode>>& nodes) {
+        for (const auto& node : nodes) {
+            pr_queue.push(node);
+        }
+    }
+};
+
+class PuzzleSolver {
+private:
+    int ExpandedNodes = 0;
+    unordered_set<string> visited;
+
+    bool CanMovePiece(const string& board, int PiecePos, int EmptyPos) const {
+        int distance = abs(PiecePos - EmptyPos);
+        return distance > 0 && distance <= 3 && (board[PiecePos] == 'B' || board[PiecePos] == 'W') && board[EmptyPos] == 'E';
+    }
+
+    int CalcHeuristic(const string& board) const {
+        int hCost = 0;
+        bool foundB = false;
+        for (char piece : board) {
+            if (piece == 'B') foundB = true;
+            if (foundB && piece == 'W') hCost++;
+        }
+        return hCost;
+    }
+
+    vector<shared_ptr<AStarNode>> expand(const shared_ptr<AStarNode>& node) {
+        vector<shared_ptr<AStarNode>> successors;
+        int EmptyPos = node->state.find('E');
+
+        for (int offset = -3; offset <= 3; offset++) {
+            if (offset == 0) continue;
+
+            int PiecePos = EmptyPos + offset;
+            if (PiecePos >= 0 && PiecePos < node->state.length() && CanMovePiece(node->state, PiecePos, EmptyPos)) {
+                string NewState = node->state;
+                swap(NewState[PiecePos], NewState[EmptyPos]);
+
+                int MoveCost = abs(offset);
+                ostringstream MoveDesc;
+                MoveDesc << "Move " << node->state[PiecePos]
+                         << " from " << PiecePos
+                         << " to " << EmptyPos
+                         << " (cost: " << MoveCost << ")";
+                
+                int g = node->g + MoveCost;
+                int h = CalcHeuristic(NewState);
+                successors.push_back(make_shared<AStarNode>(
+                    NewState,
+                    node,
+                    MoveDesc.str(),
+                    g,
+                    h,
+                    node->depth +1
+                ));
+            }
+        }
+        return successors;
+
+    }
+
+    bool IsGoalState(const string& state) const {
+        bool foundB = false;
+        for (char piece : state) {
+            if (piece == 'B') foundB = true;
+            if (foundB && piece == 'W') return false;
+        }
+        return true;
+    }
+
+public: 
+    shared_ptr<AStarNode> solve(const string& InitialState) {
+        Frontier frontier;
+        visited.clear();
+        ExpandedNodes = 0;
+
+        int InitialHeuristic = CalcHeuristic(InitialState);
+        auto InitialNode = make_shared<AStarNode>(InitialState, nullptr, "", 0, InitialHeuristic, 0);
+        frontier.MakeQueue(InitialNode);
+        
+        while (!frontier.empty()) {
+            auto node = frontier.RemoveFront();
+            ExpandedNodes++;
+
+            if (!visited.insert(node->state).second) continue;
+            if (IsGoalState(node->state)) return node;
+
+            auto successors = expand(node);
+            frontier.QueuingMany(successors);
+        }
+        return nullptr;
+    }
+
+    int GetNodesExpanded() const {
+        return ExpandedNodes;
+    }
+};
+
+int main() {
+    string initialBoard = "BBBWWWE";
+
+    PuzzleSolver solver;
+
+    cout << "Initial State: " << initialBoard << endl;
+    auto solution = solver.solve(initialBoard);
+
+    if (solution) {
+        cout << "Solution found!" << endl; 
+        cout << "Final State:" << solution->state << endl;
+        cout << "Total Cost:" << solution->g << endl;
+        cout << "Depth:" << solution->depth << endl;
+        cout << "Moves:" << endl;
+        for (const string& move : solution-> getSolutionPath()) {
+            cout << move << endl;
+        }
+        cout << "Total Nodes Expanded:" << solver.GetNodesExpanded() << endl;
+    } else {
+        cout << "No solution found.";
+    }
+    return 0;
+}
