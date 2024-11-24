@@ -174,14 +174,14 @@ int main() {
 
     if (solution) {
         cout << "Solution found!" << endl; 
-        cout << "Final State:" << solution->state << endl;
-        cout << "Total Cost:" << solution->g << endl;
-        cout << "Depth:" << solution->depth << endl;
         cout << "Moves:" << endl;
         for (const string& move : solution-> getSolutionPath()) {
             cout << move << endl;
         }
-        cout << "Total Nodes Expanded:" << solver.GetNodesExpanded() << endl;
+        cout << "Total Nodes Expanded: " << solver.GetNodesExpanded() << endl;
+        cout << "Final State: " << solution->state << endl;
+        cout << "Total Cost: " << solution->g << endl;
+        cout << "Depth: " << solution->depth << endl;
     } else {
         cout << "No solution found.";
     }
