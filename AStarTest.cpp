@@ -93,7 +93,6 @@ private:
         if (board[i] == 'W') {
             int TargetPos = FirstB - 1; // Στόχος: πριν το πρώτο 'B' 
             hCost += abs(i - TargetPos);  // Απόσταση του 'Λ' από τη σωστή θέση
-            //--FirstB; // Ενημέρωση για την επόμενη θέση όπου πρέπει να πάει το επόμενο 'Λ'
         }
     }
     return hCost;
