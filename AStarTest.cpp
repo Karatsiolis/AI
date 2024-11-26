@@ -81,24 +81,23 @@ private:
         return distance > 0 && distance <= 3;
     }
 
-
     int CalcHeuristic(const string& board) const {
     int hCost = 0;
+    if (IsGoalState(board)) return 0; 
 
     // Εύρεση της θέσης του πιο αριστερού 'Μ'
-    int leftmostB = board.find('B');
-
+    int FirstB = board.find('B');
+    
     // Υπολογισμός ευριστικής: αποστάσεις των 'Λ' από τη θέση ακριβώς πριν από το πρώτο 'Μ'
-    for (int i = 0; i < board.size(); ++i) {
+    for (int i = 0; i < board.size(); i++) {
         if (board[i] == 'W') {
-            int targetPosition = leftmostB - 1; // Στόχος: πριν το πρώτο 'B' 
-            hCost += abs(i - targetPosition);  // Απόσταση του 'Λ' από τη σωστή θέση
-            //--leftmostB; // Ενημέρωση για την επόμενη θέση όπου πρέπει να πάει το επόμενο 'Λ'
+            int TargetPos = FirstB - 1; // Στόχος: πριν το πρώτο 'B' 
+            hCost += abs(i - TargetPos);  // Απόσταση του 'Λ' από τη σωστή θέση
+            //--FirstB; // Ενημέρωση για την επόμενη θέση όπου πρέπει να πάει το επόμενο 'Λ'
         }
     }
     return hCost;
     }
-
 
     vector<AStarNode*> expand(AStarNode* node) {
         vector<AStarNode*> successors;
