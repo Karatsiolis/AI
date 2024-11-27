@@ -173,14 +173,14 @@ public:
 };
 
 int main() {
-    string InitialBoard = "BBBWWWE";                                            //Ορισμός αρχικού state τύπου string
+    string InitialBoard = "BBBWWWE";                             //Ορισμός αρχικού state τύπου string
 
-    PuzzleSolver solver;                                                        //Επίλυση 
+    PuzzleSolver solver;                                         //Επίλυση 
 
-    cout << "Initial State: " << InitialBoard << endl;                          //Εκτύπωση αρχικού state
-    auto solution = solver.solve(InitialBoard);                                 //Κλήση της solve της κλάσης PuzzleSolver για να βρούμε λύση και αποθήκευση στη solution
+    cout << "Initial State: " << InitialBoard << endl;           //Εκτύπωση αρχικού state
+    auto solution = solver.solve(InitialBoard);                  //Κλήση της solve της κλάσης PuzzleSolver για να βρούμε λύση και αποθήκευση στη solution
     if (solution) {
-        cout << "Solution found!" << endl;                                      //Αν βρεθεί solution, εκτύπωση: μήνυμα επιτυχίας, κινήσεις
+        cout << "Solution found!" << endl;                       //Αν βρεθεί solution, εκτύπωση: μήνυμα επιτυχίας, κινήσεις
         cout << "Moves:" << endl;
         for (const string& move : solution->GetSolutionPath()) {
             cout << move << endl;
