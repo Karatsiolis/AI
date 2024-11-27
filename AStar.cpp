@@ -8,15 +8,15 @@
 
 using namespace std;
 
-class AStarNode{
+class Node{
 public:
     string state;   //κατάσταση σε μορφή string
-    AStarNode* parent;  //Πατρικός κόμβος
+    Node* parent;  //Πατρικός κόμβος
     string action;  //Ενέργεια
     int f, g, h;    //f συνολικό κόστος, g κόστος μονοπατιού, h ευριστική τιμή
     int depth;      //βάθος
 
-    AStarNode(string _s, AStarNode* _p, string _a, int _g, int _h, int _d) {    //Constructor που αρχικοποιεί τα πεδία του κόμβου
+    Node(string _s, Node* _p, string _a, int _g, int _h, int _d) {    //Constructor που αρχικοποιεί τα πεδία του κόμβου
         state = _s;
         parent = _p;
         action = _a;
@@ -28,7 +28,7 @@ public:
 
     vector<string> GetSolutionPath() const {
         vector<string> path;                            //Δημιουργεί άδειο vector τύπου strings 
-        const AStarNode* current = this;                //Θέτει το τρέχον node στην μεταβλητη current 
+        const Node* current = this;                     //Θέτει το τρέχον node στην μεταβλητη current 
         while (current && !current->action.empty()) {   //Όσο το current υπάρχει και το action του node δεν είναι empty
             path.push_back(current->action);            //Βάζει το action στο τέλος του path
             current = current->parent;                  //Αντικαταστεί το current node με το parent του
@@ -39,32 +39,32 @@ public:
 };
 
 struct NodeCompare {    //Σύγκριση των κόμβων σύμφωνα με το f κατά την προτεραιότητα
-    bool operator()(const AStarNode* a, const AStarNode* b) {
-        return a->f > b->f; //Επιστρέφει true/false ανάλογα αν a>b ή όχι
+    bool operator()(const Node* a, const Node* b) {
+        return a->f > b->f;     //Επιστρέφει true/false ανάλογα αν a>b ή όχι
     }
 };
 
 class Frontier {    //Διαχείριση της ουράς προτεραιότητας
 private:
-    priority_queue<AStarNode*, vector<AStarNode*>, NodeCompare> pr_queue;   //Κάνει κατάταξη σύμφωνα με την NodeCompare και τα κατατάσει σε πίνακα τύπου vector
+    priority_queue<Node*, vector<Node*>, NodeCompare> pr_queue;   //Κάνει κατάταξη σύμφωνα με την NodeCompare και τα κατατάσει σε πίνακα τύπου vector
 public:
-    void MakeQueue(AStarNode* InitialNode) {    //Αρχικοποιεί την ουρά με τον αρχικό κόμβο
-        pr_queue = priority_queue<AStarNode*, vector<AStarNode*>, NodeCompare>();
+    void MakeQueue(Node* InitialNode) {    //Αρχικοποιεί την ουρά με τον αρχικό κόμβο
+        pr_queue = priority_queue<Node*, vector<Node*>, NodeCompare>();
         pr_queue.push(InitialNode);
     }
 
-    bool empty() const {                        //Επιστρέφει true/false αν η ουρά είναι άδεια
+    bool empty() const {                   //Επιστρέφει true/false αν η ουρά είναι άδεια
         return pr_queue.empty();
     }
 
-    AStarNode* RemoveFront() {                  //Διαγράφει το πρώτο node στην ουρά (priority queue)
+    Node* RemoveFront() {                  //Διαγράφει το πρώτο node στην ουρά (priority queue)
         if (empty()) return nullptr;
-        auto front = pr_queue.top();            //Επιστροφή
-        pr_queue.pop();                         //Διαγραφή
+        auto front = pr_queue.top();       //Επιστροφή
+        pr_queue.pop();                    //Διαγραφή
         return front;
     }
 
-    void QueuingMany(const vector<AStarNode*>& nodes) {     //Βάζει τα nodes στην ουρά (priority queue)
+    void QueuingMany(const vector<Node*>& nodes) {     //Βάζει τα nodes στην ουρά (priority queue)
         for (const auto& node : nodes) {
             pr_queue.push(node);
         }
@@ -73,7 +73,7 @@ public:
 
 class PuzzleSolver {
 private:
-    int ExpandedNodes = 0;
+    int TotalNodesGenerated = 0;
     unordered_set<string> visited;  //Σύνολο καταστάσεων που έχουν επισκεφθεί
 
     bool CanMovePiece(const string& board, int PiecePos, int EmptyPos) const {  //Έλεγχος μετακίνησης
@@ -96,8 +96,8 @@ private:
         return hCost;
     }
 
-    vector<AStarNode*> expand(AStarNode* node) {    //Δημιουργεί τους πιθανούς διαδόχους ενός κόμβου
-        vector<AStarNode*> successors;              //Δημιουργεί κενό vector για τους διαδόχους
+    vector<Node*> expand(Node* node) {    //Δημιουργεί τους πιθανούς διαδόχους ενός κόμβου
+        vector<Node*> successors;              //Δημιουργεί κενό vector για τους διαδόχους
         int EmptyPos = node->state.find('E');       //Βρίσκει την κενή θέση "Ε" στο τρέχον state
 
         for (int offset = -3; offset <= 3; offset++) {  //Εξετάζει τις πιθανές κινήσεις 
@@ -117,7 +117,7 @@ private:
                 
                 int g = node->g + MoveCost;             //Υπολογίζει το κόστος μονοπατιού προσθέτωντας το κόστος κίνησης
                 int h = CalcHeuristic(NewState);        //Υπολογίζει το h για το νέο state
-                successors.push_back(new AStarNode(     //Δημιουργεί νέο κόμβο σύμφωνα με τα παρακάτω
+                successors.push_back(new Node(     //Δημιουργεί νέο κόμβο σύμφωνα με τα παρακάτω
                     NewState,
                     node,                               //Ο τρέχων κόμβος ως πατρικός του νέου
                     MoveDesc.str(),
@@ -145,30 +145,30 @@ private:
     }
 
 public: 
-    AStarNode* solve(const string& InitialState) {      //Υλοποιεί τον A*
-        Frontier frontier;                              //Δημιουργεί ένα αντικείμενο Frontier για την αποθήκευση κόμβων που πρέπει να εξεταστούν
+    Node* solve(const string& InitialState) {      //Υλοποιεί τον A*
+        Frontier frontier;                         //Δημιουργεί ένα αντικείμενο Frontier για την αποθήκευση κόμβων που πρέπει να εξεταστούν
         visited.clear();
-        ExpandedNodes = 0;
+        TotalNodesGenerated = 1;                   //Αρχικοποίηση με τον αρχικό κόμβο
 
         int InitialHeuristic = CalcHeuristic(InitialState);     //Υπολογίζει το h για το αρχικό state
-        auto InitialNode = new AStarNode(InitialState, nullptr, "", 0, InitialHeuristic, 0);    //Δημιουργεί τον αρχικό κόμβο με αρχική κατάσταση
+        auto InitialNode = new Node(InitialState, nullptr, "", 0, InitialHeuristic, 0);    //Δημιουργεί τον αρχικό κόμβο με αρχική κατάσταση
         frontier.MakeQueue(InitialNode);                        //Προσθέτει τον κόμβο στην ουρά
         
         while (!frontier.empty()) {                             //Όσο η ουρά δεν είναι κενή
             auto node = frontier.RemoveFront();                 //Αφαιρεί τον κόμβο με το χαμηλότερο f
-            ExpandedNodes++;
 
             if (!visited.insert(node->state).second) continue;  //Προσθέτει το state του κόμβου στο σύνολο  visited εκτός αν έχει ήδη επισκεφθεί
             if (IsGoalState(node->state)) return node;          //Αν το state είναι στόχος, τότε επιστρέφει τον κόμβο ως λύση
 
             auto successors = expand(node);                     //Δημιουργεί τους διαδόχους του τρέχοντος κόμβου
+            TotalNodesGenerated += successors.size();           //Προσθήκη των successors στο σύνολο των κόμβων
             frontier.QueuingMany(successors);                   //Τους προσθέτει στην ουρά
         }
         return nullptr;
     }
 
-    int GetNodesExpanded() const {                              //Επιστροφή των κόμβων που επεκτάθηκαν
-        return ExpandedNodes;
+    int GetNodesGenerated() const {                              //Επιστροφή των κόμβων που επεκτάθηκαν
+        return TotalNodesGenerated;
     }
 };
 
@@ -186,7 +186,7 @@ int main() {
             cout << move << endl;
         }
 
-        cout << "Total Nodes Expanded: " << solver.GetNodesExpanded() << endl;
+        cout << "Total Nodes Generated: " << solver.GetNodesGenerated() << endl;
         cout << "Final State: " << solution->state << endl;
         cout << "Total Cost: " << solution->f << endl;
         cout << "Depth: " << solution->depth << endl;
