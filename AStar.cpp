@@ -96,8 +96,8 @@ private:
         return hCost;
     }
 
-    vector<Node*> expand(Node* node) {    //Δημιουργεί τους πιθανούς διαδόχους ενός κόμβου
-        vector<Node*> successors;              //Δημιουργεί κενό vector για τους διαδόχους
+    vector<Node*> expand(Node* node) {              //Δημιουργεί τους πιθανούς διαδόχους ενός κόμβου
+        vector<Node*> successors;                   //Δημιουργεί κενό vector για τους διαδόχους
         int EmptyPos = node->state.find('E');       //Βρίσκει την κενή θέση "Ε" στο τρέχον state
 
         for (int offset = -3; offset <= 3; offset++) {  //Εξετάζει τις πιθανές κινήσεις 
@@ -117,7 +117,7 @@ private:
                 
                 int g = node->g + MoveCost;             //Υπολογίζει το κόστος μονοπατιού προσθέτωντας το κόστος κίνησης
                 int h = CalcHeuristic(NewState);        //Υπολογίζει το h για το νέο state
-                successors.push_back(new Node(     //Δημιουργεί νέο κόμβο σύμφωνα με τα παρακάτω
+                successors.push_back(new Node(          //Δημιουργεί νέο κόμβο σύμφωνα με τα παρακάτω
                     NewState,
                     node,                               //Ο τρέχων κόμβος ως πατρικός του νέου
                     MoveDesc.str(),
