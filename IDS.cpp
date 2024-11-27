@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 #include <string>
+#include <cstring>
 #include <climits>
 #include <utility>
 #include <unordered_set>
@@ -11,176 +12,166 @@
 
 using namespace std;
 
-// Node class to represent the state of the puzzle
 class Node {
 private:
-    Node* parent; // Pointer to the parent node
-    char puzzle[7]; // Current puzzle configuration
-    int PositionOfEmptyTile; // Index of the empty tile ('K')
-    int total_cost; // Total cost of reaching this state
-    int depth_level; // Depth of the node in the search tree
-    int last_move_cost; // Cost of the last move
+    Node* parent; // Pointer to the parent node in the search tree
+    char puzzle[7]; // The current puzzle configuration (array of characters)
+    int PositionOfEmptyTile; // Index of the empty tile ('K') in the puzzle
+    int depth_level; // Depth level of the node in the search tree
+    int last_move_cost; // Cost of the last move to reach this node
 
-    // Set of valid goal states for the puzzle
+//Set of all possible goal states for the puzzle
     unordered_set<string> solution_goals = {
         "WWWBBBK", "WWWBBKB", "WWWBKBB", "WWWKBBB", "WWKWBBB", "WKWWBBB", "KWWWBBB"
     };
 
 public:
-    // Default constructor
+//Constructor without parameters
     Node() {}
-
-    // Parameterized constructor
-    Node(Node* parent, const char puzzle[7], int PositionOfEmptyTile, int total_cost, int depth_level, int last_move_cost) {
+// constructor with parameters
+    Node(Node* parent, const char puzzle[7], int PositionOfEmptyTile, int depth_level, int last_move_cost) {
         this->parent = parent;
         this->PositionOfEmptyTile = PositionOfEmptyTile;
-        this->total_cost = total_cost;
         this->depth_level = depth_level;
         this->last_move_cost = last_move_cost;
-        memcpy(this->puzzle, puzzle, sizeof(this->puzzle)); // Copy the puzzle state
+        memcpy(this->puzzle, puzzle, sizeof(this->puzzle));
     }
-
-    // Create a new node by applying a move to the puzzle
+//This function creates a new node by applying a move to the puzzle
     Node* newNode(Node* parent, const char puzzle[7], int PositionOfEmptyTile, int new_PositionOfEmptyTile, int depth_level, int last_move_cost) {
         char newPuzzle[7];
-        memcpy(newPuzzle, puzzle, sizeof(newPuzzle)); // Copy current puzzle state
+        memcpy(newPuzzle, puzzle, sizeof(newPuzzle));
         swap(newPuzzle[PositionOfEmptyTile], newPuzzle[new_PositionOfEmptyTile]); // Swap the empty tile with the target tile
-        return new Node(parent, newPuzzle, new_PositionOfEmptyTile, 0, depth_level + 1, last_move_cost);
+        return new Node(parent, newPuzzle, new_PositionOfEmptyTile, depth_level + 1, last_move_cost); //Create and return the new node
     }
-
-    // Print the current state of the puzzle
-    void printState(const char puzzle[7]) {
-        for (int i = 0; i < 7; i++) {
-            cout << puzzle[i] << " | ";
-        }
-        cout << endl;
-    }
-
-    // Print the path from the root node to the current node
+//This function prints the path from the root node to the current node
     void printPath(Node* root) {
-        vector<Node*> path; // Store the nodes in the solution path
-        int totalCost = 0;
+        vector<Node*> path; //Vector to store the nodes along the solution path
+        int totalCost = 0; //Variable to track the total cost of the solution
 
-        // Traverse from the current node to the root
+//Traverses back from the current node to the root nod
         while (root != nullptr) {
-            path.push_back(root);
+            path.push_back(root); //It puts the current node to the end of path vector.
             if (root->parent != nullptr) {
-                totalCost += root->last_move_cost; // Accumulate move costs
+                totalCost += root->last_move_cost; //Adds the costs
             }
-            root = root->parent;
+            root = root->parent; // Move to the parent node
         }
+//Reverse the path vector to display the path in the correct order (root to solution)
+        reverse(path.begin(), path.end());
 
-        reverse(path.begin(), path.end()); // Reverse the path to start from the root
-
+// Print each node in the solution path
         for (Node* node : path) {
             cout << "Puzzle State: ";
             for (int i = 0; i < 7; i++) cout << node->puzzle[i] << " | ";
             cout << endl;
+//Prints additional info if the node is not the root
             if (node->parent != nullptr) {
                 cout << "MOVE COST: " << node->last_move_cost << endl;
                 cout << "TOTAL DEPTH: " << node->depth_level << endl;
             }
             cout << endl;
         }
-        // Print the total cost
+//Prints the total cost of the solution
         cout << "Total cost of the solution: " << totalCost << endl;
     }
-
-    // Check if the current puzzle state is a goal state
+//This function checks if the current state is one of the solutions
     bool GoalCheck(const char puzzle[7]) {
+//Converts the puzzle array to a string and check if it exists in the solution_goals set
         return solution_goals.find(string(puzzle, puzzle + 7)) != solution_goals.end();
     }
-
-    // Perform Depth-First Search (DFS) with a depth limit
-    bool DFS(char initialPuzzle[7], int emptyTilePos, int depthLimit, int& nodesExpanded) {
-        stack<Node*> stack; // Stack for DFS
-        vector<Node*> allocatedNodes; // Track allocated nodes to clean up later
-        Node* root = new Node(nullptr, initialPuzzle, emptyTilePos, 0, 0, 0); // Create the root node
+//The DFS algorithm function
+    bool DFS(char initialPuzzle[7], int emptyTilePos, int depthLimit, int& totalNodesCreated) {
+        stack<Node*> stack; // Stack to store nodes for traversal
+        vector<Node*> allocatedNodes; // Keeps track of all dynamically allocated nodes to ensure cleanup
+// Creates the root node
+        Node* root = new Node(nullptr, initialPuzzle, emptyTilePos, 0, 0);
         stack.push(root);
         allocatedNodes.push_back(root);
+        totalNodesCreated++; //To count the root node
 
-        unordered_set<string> visited; // Track visited states
+// A set to keep track of visited puzzle states to avoid revisiting them
+        unordered_set<string> visited;
         Node* solution = nullptr;
 
+// Main DFS loop: continues until the stack is empty
         while (!stack.empty()) {
-            Node* current = stack.top();
+            Node* current = stack.top(); // Get the node at the top of the stack
             stack.pop();
 
             string currentState(current->puzzle, current->puzzle + 7);
+
+// Skip this state if it has already been visited
             if (visited.find(currentState) != visited.end()) {
-                continue; // Skip if the state was already visited
+                continue;
             }
             visited.insert(currentState);
 
-            cout << "Current state at depth " << current->depth_level << ": ";
-            printState(current->puzzle);
-
-            if (GoalCheck(current->puzzle)) { // Check if the goal is reached
+// Checks if the current state is the goal state and print sthe path to the solution
+            if (GoalCheck(current->puzzle)) {
                 solution = current;
                 cout << "Solution found!\nPath to solution:\n";
                 printPath(solution);
-                cout << "Nodes expanded in DFS: " << nodesExpanded << endl;
 
-                // Clean up allocated nodes
+// Clean up all dynamically allocated nodes
                 for (Node* node : allocatedNodes) {
                     delete node;
                 }
-                return true; // Solution found
+                return true;
             }
 
-            if (current->depth_level < depthLimit) { // Expand node if within depth limit
+//Expands the current node if it's within the depth limit
+            if (current->depth_level < depthLimit) {
                 vector<int> moves = {3, 2, 1, -1, -2, -3}; // Possible moves for the empty tile
                 for (int move : moves) {
                     int newPos = current->PositionOfEmptyTile + move;
-                    if (newPos >= 0 && newPos < 7) { // Ensure the move is valid
+ // Checks if the new position is valid (within bounds)
+                    if (newPos >= 0 && newPos < 7) {
+ // Creates a new node representing the new puzzle state after the move
                         Node* child = newNode(current, current->puzzle, current->PositionOfEmptyTile, newPos, current->depth_level, abs(move));
                         stack.push(child);
                         allocatedNodes.push_back(child);
+                    totalNodesCreated++; // Increases the count for each new node    
                     }
                 }
-                nodesExpanded++; // Increment nodes expanded
             }
         }
-
-        // Clean up allocated nodes
+// Clean up all dynamically allocated nodes if no solution is found
         for (Node* node : allocatedNodes) {
             delete node;
         }
-        return false; // No solution found
+        return false;
     }
 
+//The IDS algorithm function
     void IDS(char initialPuzzle[7], int emptyTilePos, int maxDepthLimit) {
-        int totalNodesExpanded = 0; // Track total nodes expanded
+        int totalNodesCreated = 0;
 
+// Loop through increasing depth limits from 0 to the maximum depth limit
         for (int depthLimit = 0; depthLimit <= maxDepthLimit; ++depthLimit) {
-            cout << "Running DFS with depth limit: " << depthLimit << endl;
 
             char puzzleCopy[7];
-            memcpy(puzzleCopy, initialPuzzle, sizeof(puzzleCopy)); // Copy the initial puzzle state
-            int emptyTilePosCopy = emptyTilePos;
+            memcpy(puzzleCopy, initialPuzzle, sizeof(puzzleCopy));  // Creates a copy of the initial puzzle state
+            int emptyTilePosCopy = emptyTilePos; // Copies the position of the empty tile (to ensure the DFS always runs from the same initial state)
 
-            int nodesExpandedInDFS = 0; // Nodes expanded in the current DFS
-            if (DFS(puzzleCopy, emptyTilePosCopy, depthLimit, nodesExpandedInDFS)) {
-                totalNodesExpanded += nodesExpandedInDFS;
-                cout << "Total nodes expanded: " << totalNodesExpanded << endl;
-                return; // Exit after finding the solution
+// Performs Depth-First Search (DFS) with the current depth limit            
+            if (DFS(puzzleCopy, emptyTilePosCopy, depthLimit, totalNodesCreated)) {
+
+                cout << "Total nodes created: " << totalNodesCreated << endl;
+                return; // Exit the function as the solution has been found
             }
-
-            totalNodesExpanded += nodesExpandedInDFS;
-            cout << "Nodes expanded at depth " << depthLimit << ": " << nodesExpandedInDFS << endl;
-            cout << "No solution found at depth limit " << depthLimit << "." << endl;
         }
-
-        cout << "No solution found within the maximum depth limit.\nTotal nodes expanded: " << totalNodesExpanded << endl;
+ // If no solution is found after trying all depth limits, print the result
+        cout << "No solution found within the maximum depth limit.\nTotal nodes created: " << totalNodesCreated << endl;
     }
-
 };
 
 int main() {
-    // Initial puzzle state
+// Initial puzzle state
     char puzzle[7] = {'B', 'B', 'B', 'W', 'W', 'W', 'K'};
-    int emptyTilePosition = 6; // Position of the empty tile
+    int emptyTilePosition = 6; // Position of the empty tile ('K')
+//creates an object of the Node class in order to use its functions.
     Node solver;
-    solver.IDS(puzzle, emptyTilePosition, 40); // Perform IDS with a maximum depth of 40
+ // Performs Iterative Deepening Search (IDS) with a maximum depth limit of 40
+    solver.IDS(puzzle, emptyTilePosition, 40);
     return 0;
 }
