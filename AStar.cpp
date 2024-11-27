@@ -167,7 +167,7 @@ public:
         return nullptr;
     }
 
-    int GetNodesGenerated() const {                              //Επιστροφή των κόμβων που επεκτάθηκαν
+    int GetNodesGenerated() const {                              //Επιστροφή των κόμβων που δημιουργήθηκαν
         return TotalNodesGenerated;
     }
 };
