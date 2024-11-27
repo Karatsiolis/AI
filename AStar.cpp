@@ -11,7 +11,7 @@ using namespace std;
 class Node{
 public:
     string state;   //κατάσταση σε μορφή string
-    Node* parent;  //Πατρικός κόμβος
+    Node* parent;   //Πατρικός κόμβος
     string action;  //Ενέργεια
     int f, g, h;    //f συνολικό κόστος, g κόστος μονοπατιού, h ευριστική τιμή
     int depth;      //βάθος
