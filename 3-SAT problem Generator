@@ -1,0 +1,104 @@
+#include <iostream> 
+#include <queue>
+#include <unordered_map>
+#include <vector>
+#include <string>
+#include <cstring>
+#include <climits>
+#include <utility>
+#include <unordered_set>
+#include <stack>
+#include <algorithm>
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+class Generator {
+private:
+
+    int N; //number of symbols
+    int C;
+    float negProb;
+    int numofProblems;
+public:
+
+    Generator() {}
+
+    Generator(int N, int C, float negProb, int numofProblems){
+        this->N=N;
+        this->C=C;
+        this->negProb=negProb;
+        this->numofProblems=numofProblems;
+    }
+
+    int generateRandomLiteral() {
+        int symbol = std::rand() % N + 1; // Random atomic symbol (1 to N)
+        int literal;
+
+        if ((std::rand() / (double)RAND_MAX) < negProb / 100) {
+            literal = -symbol; // Assign negative literal
+        } else {
+            literal = symbol; // Assign positive literal
+        }
+
+        return literal;
+    }
+    
+    using Clause = std::vector<int>;
+    using Problem = std::vector<Clause>;
+
+    std::vector<std::vector<int>> generateSingleProblem() {
+        std::vector<std::vector<int>> clauses(C, std::vector<int>(3, 0)); // Initialize 2D array C*3
+
+        for (int i = 0; i < C; ++i) {
+            std::unordered_set<int> usedLiterals;
+            int literalIndex = 0;
+
+            while (literalIndex < 3) {
+                int literal = generateRandomLiteral();
+
+                // Ensure no duplicate literals and no literal and its negation
+                if (usedLiterals.count(literal) == 0 && usedLiterals.count(-literal) == 0) {
+                    clauses[i][literalIndex] = literal;
+                    usedLiterals.insert(literal);
+                    ++literalIndex;
+                }
+            }
+        }
+
+        return clauses;
+    }
+
+    void printProblem(const std::vector<std::vector<int>>& problem) {
+        for (size_t i = 0; i < problem.size(); ++i) {
+            std::cout << "Clause " << i + 1 << ": (";
+            for (size_t j = 0; j < problem[i].size(); ++j) {
+                std::cout << problem[i][j];
+                if (j < problem[i].size() - 1) {
+                    std::cout << ", ";
+                }
+            }
+            std::cout << ")\n";
+        }
+
+
+}
+};
+
+int main() {
+
+   std::srand(std::time(nullptr)); // Seed for randomness
+
+    Generator g(5, 3, 40, 3); // Create an instance of the Generator class
+
+    for (int i = 0; i <3;  ++i) {
+        std::vector<std::vector<int>> problem = g.generateSingleProblem();
+        std::cout << "Generated 3-SAT Problem " << i + 1 << ":\n";
+        g.printProblem(problem);
+        std::cout << "\n";
+    }
+
+    return 0;
+}
