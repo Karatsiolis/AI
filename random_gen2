@@ -4,11 +4,13 @@
 #include <random>
 #include <ctime>
 #include <sstream>
+#include <iomanip>
+
 using namespace std;
 
 // Global variables for parameters
 int numProblems, numVariables, numClauses;
-double negativeProbability;
+double negativeProbability, a;
 default_random_engine generator(random_device{}());
 uniform_int_distribution<int> distribution(1, numVariables);
 
@@ -36,7 +38,7 @@ bool isClauseValid(const vector<int>& clause) {
 
 // Convert clause to a unique string for duplicate checking
 string clauseToString(const vector<int>& clause) {
-    vector<int> sortedClause = clause; // Copy to sort without altering original
+    vector<int> sortedClause = clause;
     sort(sortedClause.begin(), sortedClause.end());
     stringstream ss;
     for (int lit : sortedClause) {
@@ -94,12 +96,14 @@ int main() {
     cin >> numClauses;
     cout << "Enter the negative literal probability (e.g., 0.5): ";
     cin >> negativeProbability;
+    cout << "Enter the parameter a (e.g., 0.1): ";
+    cin >> a; // Parameter 'a' for local search algorithms
 
     for (int i = 0; i < numProblems; ++i) {
         cout << "3-SAT Problem " << i + 1 << ":\n";
         vector<vector<int>> problem = generate3SATProblem();
         display3SATProblem(problem);
-        cout << "\n";
+        cout << "Parameter 'a': " << a << "\n\n"; // Display the parameter 'a' for each problem
     }
     return 0;
 }
