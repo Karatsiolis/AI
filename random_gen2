@@ -1,0 +1,105 @@
+#include <iostream>
+#include <vector>
+#include <unordered_set>
+#include <random>
+#include <ctime>
+#include <sstream>
+using namespace std;
+
+// Global variables for parameters
+int numProblems, numVariables, numClauses;
+double negativeProbability;
+default_random_engine generator(random_device{}());
+uniform_int_distribution<int> distribution(1, numVariables);
+
+// Generate a random literal based on the probability of a negative literal
+int generateLiteral() {
+    int literal = distribution(generator);
+    double chance = (double)rand() / RAND_MAX;
+    if (chance < negativeProbability) {
+        literal = -literal; // Make the literal negative
+    }
+    return literal;
+}
+
+// Check if a clause is valid
+bool isClauseValid(const vector<int>& clause) {
+    unordered_set<int> seen;
+    for (int literal : clause) {
+        if (seen.find(-literal) != seen.end()) {
+            return false; // Conflict (e.g., P and ¬P)
+        }
+        seen.insert(literal);
+    }
+    return true;
+}
+
+// Convert clause to a unique string for duplicate checking
+string clauseToString(const vector<int>& clause) {
+    vector<int> sortedClause = clause; // Copy to sort without altering original
+    sort(sortedClause.begin(), sortedClause.end());
+    stringstream ss;
+    for (int lit : sortedClause) {
+        ss << lit << " ";
+    }
+    return ss.str();
+}
+
+// Generate unique, valid random 3-SAT problems
+vector<vector<int>> generate3SATProblem() {
+    vector<vector<int>> clauses(numClauses, vector<int>(3));
+    unordered_set<string> uniqueClauses;
+    int clauseCount = 0;
+    while (clauseCount < numClauses) {
+        vector<int> clause(3);
+        for (int i = 0; i < 3; ++i) {
+            clause[i] = generateLiteral();
+        }
+        if (!isClauseValid(clause)) {
+            continue;
+        }
+        string clauseStr = clauseToString(clause);
+        if (uniqueClauses.find(clauseStr) != uniqueClauses.end()) {
+            continue; // Already exists
+        }
+        clauses[clauseCount] = clause;
+        uniqueClauses.insert(clauseStr);
+        clauseCount++;
+    }
+    return clauses;
+}
+
+// Display 3-SAT problem
+void display3SATProblem(const vector<vector<int>>& clauses) {
+    for (const auto& clause : clauses) {
+        cout << "(";
+        for (size_t j = 0; j < clause.size(); ++j) {
+            cout << (clause[j] > 0 ? "x" : "¬x") << abs(clause[j]);
+            if (j < clause.size() - 1) {
+                cout << " V ";
+            }
+        }
+        cout << ") ";
+    }
+    cout << endl;
+}
+
+int main() {
+    srand(time(0)); // Random initialization
+    cout << "Enter the number of problems: ";
+    cin >> numProblems;
+    cout << "Enter the number of variables (N): ";
+    cin >> numVariables;
+    cout << "Enter the number of clauses (C): ";
+    cin >> numClauses;
+    cout << "Enter the negative literal probability (e.g., 0.5): ";
+    cin >> negativeProbability;
+
+    for (int i = 0; i < numProblems; ++i) {
+        cout << "3-SAT Problem " << i + 1 << ":\n";
+        vector<vector<int>> problem = generate3SATProblem();
+        display3SATProblem(problem);
+        cout << "\n";
+    }
+    return 0;
+}
